@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon
+  id="vfs.vtp"
+  version="1.0.0"
+  name="VTP support"
+  provider-name="spiff">
+  <requires>
+    <import addon="xbmc.vfs" version="1.0.0"/>
+  </requires>
+  <extension
+    point="xbmc.vfs"
+    protocols="vtp"
+    files="true"
+    directories="true"
+    livetv="true"
+    library_linux="vfs.vtp.so"/>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">VTP support</summary>
+    <description lang="en">VTP support</description>
+    <platform>all</platform>
+  </extension>
+</addon>
