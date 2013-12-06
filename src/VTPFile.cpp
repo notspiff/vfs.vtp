@@ -132,20 +132,17 @@ struct VTPContext
   }
 };
 
-void* Open(const char* url, const char* hostname,
-           const char* filename, unsigned int port,
-           const char* options, const char* username,
-           const char* password)
+void* Open(VFSURL* url)
 {
-  std::string host(hostname);
+  std::string host(url->hostname);
   if (host.empty())
     host = "localhost";
-  if (port == 0)
-    port = 2004;
+  if (url->port == 0)
+    url->port = 2004;
 
-  if (strstr(filename, "channels/") == filename)
+  if (strstr(url->filename, "channels/") == url->filename)
   {
-    std::string channel = filename+9;
+    std::string channel = url->filename+9;
     if (channel.find(".ts") == std::string::npos)
     {
       XBMC->Log(ADDON::LOG_ERROR, "%s - invalid channel url %s", __FUNCTION__, channel.c_str());
@@ -153,14 +150,14 @@ void* Open(const char* url, const char* hostname,
     }
 
     VTPContext* result = new VTPContext;
-    result->session.Open(host, port);
+    result->session.Open(host, url->port);
     result->channel = atoi(channel.c_str());
     result->socket = result->session.GetStreamLive(result->channel);
     return result;
   }
   else
   {
-    XBMC->Log(ADDON::LOG_ERROR, "%s - invalid path specified %s", __FUNCTION__, filename);
+    XBMC->Log(ADDON::LOG_ERROR, "%s - invalid path specified %s", __FUNCTION__, url->filename);
     return NULL;
   }
 }
@@ -186,20 +183,15 @@ int64_t GetPosition(void* context)
 
 int64_t Seek(void* context, int64_t iFilePosition, int iWhence)
 {
+  return -1;
 }
 
-bool Exists(const char* url, const char* hostname,
-            const char* filename, unsigned int port,
-            const char* options, const char* username,
-            const char* password)
+bool Exists(VFSURL* url)
 {
   return false;
 }
 
-int Stat(const char* url, const char* hostname,
-         const char* filename2, unsigned int port,
-         const char* options, const char* username,
-         const char* password, struct __stat64* buffer)
+int Stat(VFSURL* url, struct __stat64* buffer)
 {
   return -1;
 }
@@ -220,45 +212,39 @@ void DisconnectAll()
 {
 }
 
-bool DirectoryExists(const char* url, const char* hostname,
-                     const char* filename, unsigned int port,
-                     const char* options, const char* username,
-                     const char* password)
+bool DirectoryExists(VFSURL* url)
 {
   return false;
 }
 
-void* GetDirectory(const char* url, const char* hostname,
-                   const char* filename, unsigned int port,
-                   const char* options, const char* username,
-                   const char* password, VFSDirEntry** items,
-                   int* num_items)
+void* GetDirectory(VFSURL* url, VFSDirEntry** items, int* num_items)
 {
-  std::string host(hostname);
+  std::string host(url->hostname);
   if(host.empty())
     host = "localhost";
 
-  std::string base(url);
-  if (url[strlen(url)-1] == '/')
+  std::string base(url->url);
+  if (base[base.size()-1] == '/')
     base.erase(base.end()-1);
 
   // add port after, it changes the structure
   // and breaks CUtil::GetMatchingSource
-  if(port == 0)
-    port = 2004;
+  if(url->port == 0)
+    url->port = 2004;
 
   CVTPSession session;
 
-  if(!session.Open(host, port))
+  if(!session.Open(host, url->port))
     return NULL;
 
-  if(strlen(filename) == 0)
+  if(strlen(url->filename) == 0)
   {
     std::vector<VFSDirEntry>* itms = new std::vector<VFSDirEntry>(1);
     *items = &(*itms)[0];
     items[0]->path = strdup((base+"/channels/").c_str());
     items[0]->folder = true;
     items[0]->label = XBMC->GetLocalizedString(3000);
+    items[0]->title = NULL;
     items[0]->properties = new VFSProperty;
     items[0]->properties->name = strdup("propmisusepreformatted");
     items[0]->properties->val = strdup("true");
@@ -266,7 +252,7 @@ void* GetDirectory(const char* url, const char* hostname,
     *num_items = 1;
     return itms;
   }
-  else if(strcmp(filename, "channels/") == 0)
+  else if(strcmp(url->filename, "channels/") == 0)
   {
     std::vector<CVTPSession::Channel> channels;
     if(!session.GetChannels(channels))
@@ -307,22 +293,17 @@ void FreeDirectory(void* items)
     }
     delete ctx[i].properties;
     free(ctx[i].path);
+    free(ctx[i].title);
   }
   delete &ctx;
 }
 
-bool CreateDirectory(const char* url, const char* hostname,
-                     const char* filename, unsigned int port,
-                     const char* options, const char* username,
-                     const char* password)
+bool CreateDirectory(VFSURL* url)
 {
   return false;
 }
 
-bool RemoveDirectory(const char* url, const char* hostname,
-                     const char* filename, unsigned int port,
-                     const char* options, const char* username,
-                     const char* password)
+bool RemoveDirectory(VFSURL* url)
 {
   return false;
 }
@@ -337,39 +318,22 @@ int Write(void* context, const void* lpBuf, int64_t uiBufSize)
   return -1;
 }
 
-bool Delete(const char* url, const char* hostname,
-            const char* filename2, unsigned int port,
-            const char* options, const char* username,
-            const char* password)
+bool Delete(VFSURL* url)
 {
   return false;
 }
 
-bool Rename(const char* url, const char* hostname,
-            const char* filename, unsigned int port,
-            const char* options, const char* username,
-            const char* password,
-            const char* url2, const char* hostname2,
-            const char* filename2, unsigned int port2,
-            const char* options2, const char* username2,
-            const char* password2)
+bool Rename(VFSURL* url, VFSURL* url2)
 {
   return false;
 }
 
-void* OpenForWrite(const char* url, const char* hostname,
-                   const char* filename2, unsigned int port,
-                   const char* options, const char* username,
-                   const char* password, bool bOverWrite)
+void* OpenForWrite(VFSURL* url, bool bOverWrite)
 { 
   return NULL;
 }
 
-void* ContainsFiles(const char* url, const char* hostname,
-                    const char* filename2, unsigned int port,
-                    const char* options, const char* username,
-                    const char* password,
-                    VFSDirEntry** items, int* num_items)
+void* ContainsFiles(VFSURL* url, VFSDirEntry** items, int* num_items)
 {
   return NULL;
 }
@@ -461,4 +425,10 @@ bool UpdateItem(void* context)
 {
   return false;
 }
+
+int GetChunkSize(void* context)
+{
+  return 0;
+}
+
 }
